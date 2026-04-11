@@ -342,7 +342,13 @@ public:
 		uint8_t trigger_val = static_cast<uint8_t>(val * 255.0f);
 
 		if (state.left_trigger != trigger_val) {
+			bool wasPressed = state.left_trigger > 0;
+			bool isPressed = trigger_val > 0;
+
 			sendEvent(EV_ABS, ABS_Z, trigger_val);
+			if (isPressed != wasPressed)
+				sendEvent(EV_KEY, BTN_TL2, isPressed ? 1 : 0);
+
 			state.left_trigger = trigger_val;
 			sendSync();
 		}
@@ -355,7 +361,13 @@ public:
 		uint8_t trigger_val = static_cast<uint8_t>(val * 255.0f);
 
 		if (state.right_trigger != trigger_val) {
+			bool wasPressed = state.right_trigger > 0;
+			bool isPressed = trigger_val > 0;
+
 			sendEvent(EV_ABS, ABS_RZ, trigger_val);
+			if (isPressed != wasPressed)
+				sendEvent(EV_KEY, BTN_TR2, isPressed ? 1 : 0);
+
 			state.right_trigger = trigger_val;
 			sendSync();
 		}
@@ -551,7 +563,13 @@ public:
 		uint8_t trigger_val = static_cast<uint8_t>(val * 255.0f);
 
 		if (state.left_trigger != trigger_val) {
+			bool wasPressed = state.left_trigger > 0;
+			bool isPressed = trigger_val > 0;
+
 			sendEvent(EV_ABS, ABS_Z, trigger_val);
+			if (isPressed != wasPressed)
+				sendEvent(EV_KEY, BTN_TL2, isPressed ? 1 : 0);
+
 			state.left_trigger = trigger_val;
 			sendSync();
 		}
@@ -564,7 +582,13 @@ public:
 		uint8_t trigger_val = static_cast<uint8_t>(val * 255.0f);
 
 		if (state.right_trigger != trigger_val) {
+			bool wasPressed = state.right_trigger > 0;
+			bool isPressed = trigger_val > 0;
+
 			sendEvent(EV_ABS, ABS_RZ, trigger_val);
+			if (isPressed != wasPressed)
+				sendEvent(EV_KEY, BTN_TR2, isPressed ? 1 : 0);
+
 			state.right_trigger = trigger_val;
 			sendSync();
 		}
