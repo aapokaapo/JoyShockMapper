@@ -635,7 +635,8 @@ std::tuple<std::string, std::string> GetActiveWindowName()
 			XFree = reinterpret_cast<decltype(XFree)>(::dlsym(libX11, "XFree"));
 
 			X11Display = XOpenDisplay(nullptr);
-			_NET_WM_PID = XInternAtom(X11Display, "_NET_WM_PID", true);
+			if (X11Display != nullptr)
+				_NET_WM_PID = XInternAtom(X11Display, "_NET_WM_PID", true);
 		}
 	}
 
@@ -725,6 +726,8 @@ std::vector<std::string> ListDirectory(std::string directory)
 std::string GetCWD()
 {
 	std::unique_ptr<char, decltype(&std::free)> pathBuffer{ getcwd(nullptr, 0), &std::free };
+	if (pathBuffer.get() == nullptr)
+		return {};
 	return pathBuffer.get();
 }
 

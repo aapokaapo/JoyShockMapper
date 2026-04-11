@@ -9,7 +9,7 @@
 #include <thread>
 #include <vector>
 #include <memory>
-#include <unordered_map>
+#include <map>
 #include <list>
 
 #include <gtk/gtk.h>
@@ -70,7 +70,7 @@ private:
 	AppIndicator *indicator_{ nullptr };
 	std::unique_ptr<GtkMenu, decltype(&::g_object_unref)> menu_{ nullptr, nullptr };
 	std::vector<GtkMenuItem *> menuItems_{};
-	std::unordered_map<GtkMenuItem *, std::pair<GtkMenu *, std::vector<GtkMenuItem *>>> subMenus_;
+	std::map<GtkMenuItem *, std::pair<GtkMenu *, std::vector<GtkMenuItem *>>> subMenus_;
 
 	std::list<ClickCallbackType> callbacks_;
 

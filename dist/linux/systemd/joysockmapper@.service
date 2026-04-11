@@ -1,5 +1,5 @@
 [Unit]
-Description=JoyShockMapper Virtual Controller Service for %i
+Description=JoyShockMapper - Controller Remapper (user session)
 Documentation=https://github.com/aapokaapo/JoyShockMapper
 PartOf=graphical-session.target
 After=graphical-session-pre.target
@@ -9,23 +9,27 @@ Type=notify
 ExecStart=/usr/local/bin/JoyShockMapper
 ExecReload=/bin/kill -HUP $MAINPID
 
-CPUSchedulingPolicy=fifo
-CPUSchedulingPriority=40
-LimitRTPRIO=99
+# Forward the user's display environment so the tray icon and AutoLoad
+# window-focus detection work correctly on both X11 and Wayland.
+PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR XDG_CONFIG_HOME HOME
 
+# Restart on crash with exponential-style backoff to prevent restart loops
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=60
+StartLimitIntervalSec=120
 StartLimitBurst=5
 
+# Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=joysockmapper
 
+# Timeout & Watchdog
 TimeoutStartSec=30
 TimeoutStopSec=10
 WatchdogSec=30
 
+# Resource limits
 MemoryMax=256M
 
 [Install]
