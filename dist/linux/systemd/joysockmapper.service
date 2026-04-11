@@ -1,0 +1,38 @@
+[Unit]
+Description=JoyShockMapper Virtual Controller Service
+Documentation=https://github.com/aapokaapo/JoyShockMapper
+# Wait for udev to settle so physical controllers are enumerable
+After=udev.service systemd-udev-settle.service sound.target
+Wants=joysockmapper.socket
+
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/JoyShockMapper
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Real-time scheduling for low latency
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=50
+LimitRTPRIO=99
+
+# Auto-restart on failure
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=joysockmapper
+
+# Timeout & Watchdog
+TimeoutStartSec=30
+TimeoutStopSec=10
+WatchdogSec=30
+
+# Resource limits
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

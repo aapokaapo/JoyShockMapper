@@ -103,4 +103,17 @@ if (UNIX AND NOT APPLE)
         DIRECTORY ${PROJECT_SOURCE_DIR}/dist/GyroConfigs
         DESTINATION ../etc/JoyShockMapper/
     )
+
+    install (
+        FILES
+            ${PROJECT_SOURCE_DIR}/dist/linux/systemd/joysockmapper.service
+            ${PROJECT_SOURCE_DIR}/dist/linux/systemd/joysockmapper@.service
+            ${PROJECT_SOURCE_DIR}/dist/linux/systemd/joysockmapper.socket
+        DESTINATION lib/systemd/system
+    )
+
+    install (
+        FILES ${PROJECT_SOURCE_DIR}/dist/linux/conf.d/joysockmapper.conf
+        DESTINATION ../etc/JoyShockMapper/conf.d
+    )
 endif ()

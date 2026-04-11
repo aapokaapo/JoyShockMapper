@@ -1,0 +1,32 @@
+[Unit]
+Description=JoyShockMapper Virtual Controller Service for %i
+Documentation=https://github.com/aapokaapo/JoyShockMapper
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/JoyShockMapper
+ExecReload=/bin/kill -HUP $MAINPID
+
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=40
+LimitRTPRIO=99
+
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=joysockmapper
+
+TimeoutStartSec=30
+TimeoutStopSec=10
+WatchdogSec=30
+
+MemoryMax=256M
+
+[Install]
+WantedBy=graphical-session.target
