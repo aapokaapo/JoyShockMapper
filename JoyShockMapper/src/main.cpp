@@ -1478,10 +1478,13 @@ void beforeShowTrayMenu()
 		tray->AddMenuItem(U("Show Console"), &ShowConsole);
 		tray->AddMenuItem(U("Reconnect controllers"), []()
 		  { WriteToConsole("RECONNECT_CONTROLLERS"); });
-		tray->AddMenuItem(
-		  U("AutoLoad"), [](bool isChecked)
-		  { if (auto setting = SettingsManager::getV<Switch>(SettingID::AUTOLOAD)) setting->set(isChecked ? Switch::ON : Switch::OFF); },
-		  bind(&PollingThread::isRunning, autoLoadThread.get()));
+		if (!g_headless)
+		{
+			tray->AddMenuItem(
+			  U("AutoLoad"), [](bool isChecked)
+			  { if (auto setting = SettingsManager::getV<Switch>(SettingID::AUTOLOAD)) setting->set(isChecked ? Switch::ON : Switch::OFF); },
+			  bind(&PollingThread::isRunning, autoLoadThread.get()));
+		}
 
 		tray->AddMenuItem(
 		  U("AutoConnect"), [](bool isChecked)
@@ -1540,6 +1543,10 @@ void beforeShowTrayMenu()
 			  if (!isChecked)
 				  UnhideConsole(); },
 		  bind(&PollingThread::isRunning, minimizeThread.get()));
+		tray->AddMenuItem(U("Reset All Configs"), []()
+		  {
+			WriteToConsole("RESET_MAPPINGS");
+			beforeShowTrayMenu(); });
 		tray->AddMenuItem(U("Quit"), []()
 		  { WriteToConsole("QUIT"); });
 	}
