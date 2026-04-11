@@ -4,7 +4,7 @@ Documentation=https://github.com/aapokaapo/JoyShockMapper
 PartOf=joysockmapper.service
 
 [Socket]
-ListenStream=/run/joysockmapper.sock
+ListenStream=%t/joysockmapper.sock
 Accept=no
 
 [Install]

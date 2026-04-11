@@ -104,12 +104,12 @@ if (UNIX AND NOT APPLE)
         DESTINATION ../etc/JoyShockMapper/
     )
 
+    # User-level systemd service (graphical session, no root required)
     install (
         FILES
-            ${PROJECT_SOURCE_DIR}/dist/linux/systemd/joysockmapper.service
             ${PROJECT_SOURCE_DIR}/dist/linux/systemd/joysockmapper@.service
             ${PROJECT_SOURCE_DIR}/dist/linux/systemd/joysockmapper.socket
-        DESTINATION lib/systemd/system
+        DESTINATION lib/systemd/user
     )
 
     install (
