@@ -600,13 +600,33 @@ public:
 	}
 };
 
+// Forward declarations for the libmanette-backed factory functions defined in
+// GamepadLibmanette.cpp.  These are tried first; if they return nullptr the
+// code falls back to the plain uinput implementations below.
+Gamepad* createLibmanetteXboxGamepad(Gamepad::Callback notification);
+Gamepad* createLibmanetteDS4Gamepad(Gamepad::Callback notification);
+
 Gamepad* Gamepad::getNew(ControllerScheme scheme, Callback notification)
 {
 	switch (scheme) {
 		case ControllerScheme::XBOX:
+		{
+			// Try the libmanette / improved-uinput backend first.
+			Gamepad* pad = createLibmanetteXboxGamepad(notification);
+			if (pad)
+				return pad;
+			// Fall back to the original uinput implementation.
+			std::cerr << "[Gamepad] libmanette Xbox backend unavailable, falling back to uinput\n";
 			return new XboxGamepadImpl(notification);
+		}
 		case ControllerScheme::DS4:
+		{
+			Gamepad* pad = createLibmanetteDS4Gamepad(notification);
+			if (pad)
+				return pad;
+			std::cerr << "[Gamepad] libmanette DS4 backend unavailable, falling back to uinput\n";
 			return new DS4GamepadImpl(notification);
+		}
 		default:
 			return nullptr;
 	}
