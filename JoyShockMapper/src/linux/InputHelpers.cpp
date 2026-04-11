@@ -741,6 +741,8 @@ DWORD ShowOnlineHelp()
 	return 0;
 }
 
+extern bool g_headless;
+
 void HideConsole()
 {
 }
@@ -749,7 +751,11 @@ void ShowConsole()
 {
 }
 void initConsole() {
-	static std::thread ttyForwardThread([](){
+	if (g_headless)
+	{
+		return;
+	}
+	std::thread ttyForwardThread([](){
 		FILE* tty = fopen("/dev/tty", "r");
 		if (!tty) {
 			perror("fopen /dev/tty");
@@ -772,6 +778,7 @@ void initConsole() {
 		free(lineptr);
 		fclose(tty);
 	});
+	ttyForwardThread.detach();
 }
 
 bool ClearConsole() {

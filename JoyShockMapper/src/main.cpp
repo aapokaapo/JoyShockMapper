@@ -38,6 +38,7 @@ unique_ptr<PollingThread> autoLoadThread;
 unique_ptr<JSM::AutoConnect> autoConnectThread;
 unique_ptr<PollingThread> minimizeThread;
 bool devicesCalibrating = false;
+bool g_headless = false;
 unordered_map<int, shared_ptr<JoyShock>> handle_to_joyshock;
 
 int input_pipe_fd[2];
@@ -2473,8 +2474,8 @@ void initJsmSettings(CmdRegistry *commandRegistry)
 	commandRegistry->add((new JSMAssignment<FloatXY>(*scroll_sens))
 	                       ->setHelp("Scrolling sensitivity for sticks."));
 
-	auto autoloadSwitch = new JSMVariable<Switch>(Switch::ON);
-	autoLoadThread.reset(new JSM::AutoLoad(commandRegistry, autoloadSwitch->value() == Switch::ON)); // Start by default
+	auto autoloadSwitch = new JSMVariable<Switch>(g_headless ? Switch::OFF : Switch::ON);
+	autoLoadThread.reset(new JSM::AutoLoad(commandRegistry, autoloadSwitch->value() == Switch::ON)); // Start by default (disabled in headless mode)
 	autoloadSwitch->setFilter(&filterInvalidValue<Switch, Switch::INVALID>)->addOnChangeListener(bind(&updateThread, autoLoadThread.get(), placeholders::_1));
 	SettingsManager::add(SettingID::AUTOLOAD, autoloadSwitch);
 	auto *autoloadCmd = new JSMAssignment<Switch>("AUTOLOAD", *autoloadSwitch);
@@ -2787,6 +2788,21 @@ int main(int argc, char *argv[])
 	void *trayIconData = nullptr;
 	string module(argv[0]);
 #endif // _WIN32
+	// Parse --headless flag before anything else
+	for (int i = 1; i < argc; ++i)
+	{
+#if _WIN32
+		string arg(&argv[i][0], &argv[i][wcslen(argv[i])]);
+#else
+		string arg = string(argv[i]);
+#endif
+		if (arg == "--headless")
+		{
+			g_headless = true;
+			break;
+		}
+	}
+
 	jsl.reset(JslWrapper::getNew());
 	whitelister.reset(Whitelister::getNew(false));
 
@@ -2810,6 +2826,10 @@ int main(int argc, char *argv[])
 	initFifoCommandListener();
 	#endif
 	COUT_BOLD << "Welcome to JoyShockMapper version " << version << "!\n";
+	if (g_headless)
+	{
+		COUT_INFO << "Running in headless mode: AutoLoad is disabled.\n";
+	}
 	// if (whitelister) COUT << "JoyShockMapper was successfully whitelisted!\n";
 	//  Threads need to be created before listeners
 	CmdRegistry commandRegistry;

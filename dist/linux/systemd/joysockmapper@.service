@@ -6,11 +6,11 @@ After=graphical-session-pre.target
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/JoyShockMapper
+ExecStart=/usr/local/bin/JoyShockMapper --headless
 ExecReload=/bin/kill -HUP $MAINPID
 
-# Forward the user's display environment so the tray icon and AutoLoad
-# window-focus detection work correctly on both X11 and Wayland.
+# Forward the user's display environment so the tray icon works correctly on both X11 and Wayland.
+# AutoLoad (window-focus config switching) is disabled in headless mode.
 PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR XDG_CONFIG_HOME HOME
 
 # Restart on crash with exponential-style backoff to prevent restart loops
