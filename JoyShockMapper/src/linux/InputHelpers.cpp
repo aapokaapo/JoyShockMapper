@@ -760,7 +760,7 @@ void initConsole() {
 		if (!tty) {
 			perror("fopen /dev/tty");
 			g_headless = true;
-			COUT_INFO << "Running in headless mode: AutoLoad is disabled.\n";
+			COUT_INFO << "Running in headless mode (no TTY available).\n";
 			return;
 		}
 		char* lineptr = nullptr;
