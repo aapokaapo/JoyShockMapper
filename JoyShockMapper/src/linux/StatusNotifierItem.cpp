@@ -239,11 +239,21 @@ void StatusNotifierItem::AddMenuItem(const std::string &l, const std::string &sl
 		auto *subMenuItemsPtr = &subMenuItems;
 
 		item->callbacks_.emplace_back([onClick, subMenuItemsPtr, subMenuItemPtr]() {
+			// Block "activate" signal handlers on all sub-items before changing check
+			// states. gtk_check_menu_item_set_active() internally calls
+			// gtk_menu_item_activate() which re-emits "activate", causing infinite
+			// recursion if not blocked.
+			auto onActivateFn = reinterpret_cast<gpointer>(reinterpret_cast<GCallback>(&StatusNotifierItem::OnActivate));
 			for (auto *si : *subMenuItemsPtr)
 			{
+				g_signal_handlers_block_matched(G_OBJECT(si), G_SIGNAL_MATCH_FUNC, 0, 0, nullptr, onActivateFn, nullptr);
 				gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(si), FALSE);
 			}
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(subMenuItemPtr), TRUE);
+			for (auto *si : *subMenuItemsPtr)
+			{
+				g_signal_handlers_unblock_matched(G_OBJECT(si), G_SIGNAL_MATCH_FUNC, 0, 0, nullptr, onActivateFn, nullptr);
+			}
 			onClick();
 		});
 		auto &cb = item->callbacks_.back();
@@ -262,6 +272,30 @@ void StatusNotifierItem::AddMenuItem(const std::string &l, const std::string &sl
 
 void StatusNotifierItem::ClearMenuMap()
 {
+	// The idle callback captures 'this'. This is safe because the destructor
+	// calls thread_.join() which blocks until the GTK thread (and all pending
+	// idle callbacks) finishes, so 'this' is always valid while the callback runs.
+	g_idle_add([](void *self) -> gboolean {
+		auto *item = static_cast<StatusNotifierItem *>(self);
+
+		if (item->menu_)
+		{
+			// gtk_widget_destroy disconnects all signal handlers and removes the
+			// widget from its parent container, so it is safe to clear callbacks_
+			// afterwards without risking dangling GTK signal data pointers.
+			for (auto *menuItem : item->menuItems_)
+			{
+				gtk_widget_destroy(GTK_WIDGET(menuItem));
+			}
+		}
+
+		item->menuItems_.clear();
+		item->subMenus_.clear();
+		item->callbacks_.clear();
+
+		return FALSE;
+	},
+	  this);
 }
 
 void StatusNotifierItem::OnActivate(GtkMenuItem *, void *data) noexcept
