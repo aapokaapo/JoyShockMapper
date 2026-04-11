@@ -755,10 +755,6 @@ void initConsole() {
 	{
 		return;
 	}
-	if (access("/dev/tty", R_OK) != 0)
-	{
-		return;
-	}
 	std::thread ttyForwardThread([](){
 		FILE* tty = fopen("/dev/tty", "r");
 		if (!tty) {
