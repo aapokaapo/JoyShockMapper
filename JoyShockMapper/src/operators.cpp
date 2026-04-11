@@ -9,19 +9,6 @@
 #include <iomanip>
 #include <cmath>
 
-static optional<float> getFloat(const string &str, size_t *newpos = nullptr)
-{
-	try
-	{
-		float f = stof(str, newpos);
-		return f;
-	}
-	catch (invalid_argument)
-	{
-		return nullopt;
-	}
-}
-
 istream &operator>>(istream &in, ButtonID &rhv)
 {
 	string s;
@@ -172,20 +159,21 @@ ostream &operator<<(ostream &out, const FloatXY &fxy)
 
 istream &operator>>(istream &in, FloatXY &fxy)
 {
-	size_t pos;
 	string value;
 	getline(in, value);
-	auto sens = getFloat(value, &pos);
-	if (sens)
+	stringstream ss(value);
+	float first;
+	ss >> first;
+	if (!ss.fail())
 	{
-		FloatXY newSens{ *sens, *sens };
-		sens = getFloat(&value[pos]);
-		if (sens)
+		float second = first;
+		ss >> second;
+		if (ss.fail() && !ss.eof())
 		{
-			newSens.second = *sens;
-			value[pos] = 0;
+			in.setstate(in.failbit);
+			return in;
 		}
-		fxy = newSens;
+		fxy = FloatXY{ first, second };
 	}
 	else
 	{
