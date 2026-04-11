@@ -113,7 +113,7 @@ struct ControllerState
 class LibmanetteXboxGamepad : public Gamepad
 {
 public:
-	LibmanetteXboxGamepad(Callback /*notification*/)
+	LibmanetteXboxGamepad(Callback /*unused_notification*/)
 	{
 		initialize();
 	}
@@ -286,14 +286,9 @@ private:
 
 		struct uinput_setup usetup;
 		memset(&usetup, 0, sizeof(usetup));
-#ifdef HAVE_LIBMANETTE
-		// Use BUS_USB so that SDL/Steam (which libmanette is based on) enumerates
-		// the device correctly on modern Linux distributions.
+		// Use BUS_USB so that SDL/Steam enumerates the device correctly on
+		// modern Linux distributions.
 		usetup.id.bustype = BUS_USB;
-		std::cerr << "[Libmanette Xbox] Using BUS_USB for better Steam/SDL compatibility\n";
-#else
-		usetup.id.bustype = BUS_USB;
-#endif
 		usetup.id.vendor = 0x045e;   // Microsoft
 		usetup.id.product = 0x02ea;  // Xbox One Controller
 		usetup.id.version = 0x0100;
@@ -392,7 +387,7 @@ private:
 class LibmanetteDS4Gamepad : public Gamepad
 {
 public:
-	LibmanetteDS4Gamepad(Callback /*notification*/)
+	LibmanetteDS4Gamepad(Callback /*unused_notification*/)
 	{
 		initialize();
 	}
@@ -566,13 +561,9 @@ private:
 
 		struct uinput_setup usetup;
 		memset(&usetup, 0, sizeof(usetup));
-#ifdef HAVE_LIBMANETTE
-		// Use BUS_USB for libmanette/SDL/Steam compatibility.
+		// Use BUS_USB so that SDL/Steam enumerates the device correctly on
+		// modern Linux distributions.
 		usetup.id.bustype = BUS_USB;
-		std::cerr << "[Libmanette DS4] Using BUS_USB for better Steam/SDL compatibility\n";
-#else
-		usetup.id.bustype = BUS_USB;
-#endif
 		usetup.id.vendor = 0x054c;   // Sony
 		usetup.id.product = 0x05c4;  // DualShock 4
 		usetup.id.version = 0x0100;
