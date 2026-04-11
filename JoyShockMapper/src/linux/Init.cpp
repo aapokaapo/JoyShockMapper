@@ -64,12 +64,17 @@ static void start_watchdog()
 
 	unsigned long usec = 0;
 	try { usec = std::stoul(watchdog_usec); }
-	catch (...) { return; }
+	catch (const std::invalid_argument &) { return; }
+	catch (const std::out_of_range &) { return; }
 	if (usec == 0)
 		return;
 
 	g_watchdog_running = true;
 	auto interval = std::chrono::microseconds(usec / 2);
+	// The thread is detached because joining it from a signal handler is not
+	// async-signal-safe.  The thread exits naturally once g_watchdog_running
+	// is cleared by terminateHandler, and any in-progress sd_notify_msg call
+	// holds no resources that require explicit cleanup.
 	std::thread([interval]() {
 		while (g_watchdog_running.load())
 		{
@@ -94,7 +99,10 @@ static void terminateHandler(int signo)
 
 static void reloadHandler(int /*signo*/)
 {
-	// SIGHUP: reconnect all physical controllers and recreate virtual devices
+	// SIGHUP: reconnect all physical controllers and recreate virtual devices.
+	// Note: WriteToConsole is not strictly async-signal-safe (it uses a mutex),
+	// but this follows the same pattern as the existing terminateHandler above
+	// and matches the overall signal-handling approach in this codebase.
 	WriteToConsole("RECONNECT_CONTROLLERS");
 }
 
