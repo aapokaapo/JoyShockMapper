@@ -1479,12 +1479,12 @@ void beforeShowTrayMenu()
 		  { WriteToConsole("RECONNECT_CONTROLLERS"); });
 		tray->AddMenuItem(
 		  U("AutoLoad"), [](bool isChecked)
-		  { SettingsManager::get<Switch>(SettingID::AUTOLOAD)->set(isChecked ? Switch::ON : Switch::OFF); },
+		  { if (auto setting = SettingsManager::getV<Switch>(SettingID::AUTOLOAD)) setting->set(isChecked ? Switch::ON : Switch::OFF); },
 		  bind(&PollingThread::isRunning, autoLoadThread.get()));
 
 		tray->AddMenuItem(
 		  U("AutoConnect"), [](bool isChecked)
-		  { SettingsManager::get<Switch>(SettingID::AUTOCONNECT)->set(isChecked ? Switch::ON : Switch::OFF); },
+		  { if (auto setting = SettingsManager::getV<Switch>(SettingID::AUTOCONNECT)) setting->set(isChecked ? Switch::ON : Switch::OFF); },
 		  bind(&PollingThread::isRunning, autoConnectThread.get()));
 
 		if (whitelister && whitelister->IsAvailable())
