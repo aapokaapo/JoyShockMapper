@@ -53,24 +53,37 @@
 namespace
 {
 
-// Send a single uinput event.
-static void uinput_send(int fd, uint16_t type, uint16_t code, int32_t value)
-{
-	if (fd < 0)
-		return;
-	struct input_event ev;
-	memset(&ev, 0, sizeof(ev));
-	ev.type = type;
-	ev.code = code;
-	ev.value = value;
-	gettimeofday(&ev.time, nullptr);
-	ssize_t ret = write(fd, &ev, sizeof(ev));
-	(void)ret;
-}
+// Maximum number of input_event entries that can be buffered per frame.
+// 32 is more than enough for buttons + sticks + triggers + sync.
+static constexpr int UINPUT_EVENT_BUFFER_SIZE = 32;
 
-static void uinput_sync(int fd)
+// Write a batch of input_event structures to the uinput fd in a single
+// syscall, then append a SYN_REPORT event.  Returns true on success.
+static bool uinput_flush(int fd, struct input_event* events, int count)
 {
-	uinput_send(fd, EV_SYN, SYN_REPORT, 0);
+	if (fd < 0 || count <= 0)
+		return false;
+
+	struct timeval tv;
+	gettimeofday(&tv, nullptr);
+	for (int i = 0; i < count; ++i)
+		events[i].time = tv;
+
+	// Write all queued events in one syscall.
+	ssize_t total = static_cast<ssize_t>(count) * static_cast<ssize_t>(sizeof(struct input_event));
+	ssize_t ret = write(fd, events, static_cast<size_t>(total));
+	(void)ret;
+
+	// Append sync event.
+	struct input_event syn;
+	memset(&syn, 0, sizeof(syn));
+	syn.time = tv;
+	syn.type = EV_SYN;
+	syn.code = SYN_REPORT;
+	syn.value = 0;
+	ret = write(fd, &syn, sizeof(syn));
+	(void)ret;
+	return true;
 }
 
 static void uinput_setup_abs(int fd, int axis, int min_val, int max_val, int flat = 0)
@@ -142,8 +155,7 @@ public:
 		uint16_t code = mapButton(btn);
 		if (code == 0)
 			return;
-		uinput_send(_fd, EV_KEY, code, pressed ? 1 : 0);
-		uinput_sync(_fd);
+		addEvent(EV_KEY, code, pressed ? 1 : 0);
 	}
 
 	void setLeftStick(float x, float y) override
@@ -154,15 +166,14 @@ public:
 		int16_t yv = static_cast<int16_t>(-y * 32767.0f);
 		if (_state.left_stick_x != xv)
 		{
-			uinput_send(_fd, EV_ABS, ABS_X, xv);
+			addEvent(EV_ABS, ABS_X, xv);
 			_state.left_stick_x = xv;
 		}
 		if (_state.left_stick_y != yv)
 		{
-			uinput_send(_fd, EV_ABS, ABS_Y, yv);
+			addEvent(EV_ABS, ABS_Y, yv);
 			_state.left_stick_y = yv;
 		}
-		uinput_sync(_fd);
 	}
 
 	void setRightStick(float x, float y) override
@@ -173,15 +184,14 @@ public:
 		int16_t yv = static_cast<int16_t>(-y * 32767.0f);
 		if (_state.right_stick_x != xv)
 		{
-			uinput_send(_fd, EV_ABS, ABS_RX, xv);
+			addEvent(EV_ABS, ABS_RX, xv);
 			_state.right_stick_x = xv;
 		}
 		if (_state.right_stick_y != yv)
 		{
-			uinput_send(_fd, EV_ABS, ABS_RY, yv);
+			addEvent(EV_ABS, ABS_RY, yv);
 			_state.right_stick_y = yv;
 		}
-		uinput_sync(_fd);
 	}
 
 	void setStick(float x, float y, bool isLeft) override
@@ -201,11 +211,10 @@ public:
 		{
 			bool wasPressed = _state.left_trigger > 0;
 			bool isPressed = tv > 0;
-			uinput_send(_fd, EV_ABS, ABS_Z, tv);
+			addEvent(EV_ABS, ABS_Z, tv);
 			if (isPressed != wasPressed)
-				uinput_send(_fd, EV_KEY, BTN_TL2, isPressed ? 1 : 0);
+				addEvent(EV_KEY, BTN_TL2, isPressed ? 1 : 0);
 			_state.left_trigger = tv;
-			uinput_sync(_fd);
 		}
 	}
 
@@ -218,17 +227,16 @@ public:
 		{
 			bool wasPressed = _state.right_trigger > 0;
 			bool isPressed = tv > 0;
-			uinput_send(_fd, EV_ABS, ABS_RZ, tv);
+			addEvent(EV_ABS, ABS_RZ, tv);
 			if (isPressed != wasPressed)
-				uinput_send(_fd, EV_KEY, BTN_TR2, isPressed ? 1 : 0);
+				addEvent(EV_KEY, BTN_TR2, isPressed ? 1 : 0);
 			_state.right_trigger = tv;
-			uinput_sync(_fd);
 		}
 	}
 
 	void setGyro(TimePoint, float, float, float, float, float, float) override {}
 	void setTouchState(optional<FloatXY>, optional<FloatXY>) override {}
-	void update() override { uinput_sync(_fd); }
+	void update() override { flushEvents(); }
 
 	ControllerScheme getType() const override { return ControllerScheme::XBOX; }
 
@@ -236,6 +244,26 @@ private:
 	int _fd = -1;
 	bool _initialized = false;
 	ControllerState _state;
+	struct input_event _eventBuffer[UINPUT_EVENT_BUFFER_SIZE];
+	int _bufferCount = 0;
+
+	void addEvent(uint16_t type, uint16_t code, int32_t value)
+	{
+		if (_bufferCount >= UINPUT_EVENT_BUFFER_SIZE)
+			flushEvents();
+		struct input_event& ev = _eventBuffer[_bufferCount];
+		++_bufferCount;
+		memset(&ev, 0, sizeof(ev));
+		ev.type = type;
+		ev.code = code;
+		ev.value = value;
+	}
+
+	void flushEvents()
+	{
+		uinput_flush(_fd, _eventBuffer, _bufferCount);
+		_bufferCount = 0;
+	}
 
 	void initialize()
 	{
@@ -416,8 +444,7 @@ public:
 		uint16_t code = mapButton(btn);
 		if (code == 0)
 			return;
-		uinput_send(_fd, EV_KEY, code, pressed ? 1 : 0);
-		uinput_sync(_fd);
+		addEvent(EV_KEY, code, pressed ? 1 : 0);
 	}
 
 	void setLeftStick(float x, float y) override
@@ -428,15 +455,14 @@ public:
 		uint8_t yv = static_cast<uint8_t>((1.0f - y) * 127.5f);
 		if (_state.left_stick_x != static_cast<int16_t>(xv))
 		{
-			uinput_send(_fd, EV_ABS, ABS_X, xv);
+			addEvent(EV_ABS, ABS_X, xv);
 			_state.left_stick_x = xv;
 		}
 		if (_state.left_stick_y != static_cast<int16_t>(yv))
 		{
-			uinput_send(_fd, EV_ABS, ABS_Y, yv);
+			addEvent(EV_ABS, ABS_Y, yv);
 			_state.left_stick_y = yv;
 		}
-		uinput_sync(_fd);
 	}
 
 	void setRightStick(float x, float y) override
@@ -447,15 +473,14 @@ public:
 		uint8_t yv = static_cast<uint8_t>((1.0f - y) * 127.5f);
 		if (_state.right_stick_x != static_cast<int16_t>(xv))
 		{
-			uinput_send(_fd, EV_ABS, ABS_RX, xv);
+			addEvent(EV_ABS, ABS_RX, xv);
 			_state.right_stick_x = xv;
 		}
 		if (_state.right_stick_y != static_cast<int16_t>(yv))
 		{
-			uinput_send(_fd, EV_ABS, ABS_RY, yv);
+			addEvent(EV_ABS, ABS_RY, yv);
 			_state.right_stick_y = yv;
 		}
-		uinput_sync(_fd);
 	}
 
 	void setStick(float x, float y, bool isLeft) override
@@ -475,11 +500,10 @@ public:
 		{
 			bool wasPressed = _state.left_trigger > 0;
 			bool isPressed = tv > 0;
-			uinput_send(_fd, EV_ABS, ABS_Z, tv);
+			addEvent(EV_ABS, ABS_Z, tv);
 			if (isPressed != wasPressed)
-				uinput_send(_fd, EV_KEY, BTN_TL2, isPressed ? 1 : 0);
+				addEvent(EV_KEY, BTN_TL2, isPressed ? 1 : 0);
 			_state.left_trigger = tv;
-			uinput_sync(_fd);
 		}
 	}
 
@@ -492,17 +516,16 @@ public:
 		{
 			bool wasPressed = _state.right_trigger > 0;
 			bool isPressed = tv > 0;
-			uinput_send(_fd, EV_ABS, ABS_RZ, tv);
+			addEvent(EV_ABS, ABS_RZ, tv);
 			if (isPressed != wasPressed)
-				uinput_send(_fd, EV_KEY, BTN_TR2, isPressed ? 1 : 0);
+				addEvent(EV_KEY, BTN_TR2, isPressed ? 1 : 0);
 			_state.right_trigger = tv;
-			uinput_sync(_fd);
 		}
 	}
 
 	void setGyro(TimePoint, float, float, float, float, float, float) override {}
 	void setTouchState(optional<FloatXY>, optional<FloatXY>) override {}
-	void update() override { uinput_sync(_fd); }
+	void update() override { flushEvents(); }
 
 	ControllerScheme getType() const override { return ControllerScheme::DS4; }
 
@@ -510,6 +533,26 @@ private:
 	int _fd = -1;
 	bool _initialized = false;
 	ControllerState _state;
+	struct input_event _eventBuffer[UINPUT_EVENT_BUFFER_SIZE];
+	int _bufferCount = 0;
+
+	void addEvent(uint16_t type, uint16_t code, int32_t value)
+	{
+		if (_bufferCount >= UINPUT_EVENT_BUFFER_SIZE)
+			flushEvents();
+		struct input_event& ev = _eventBuffer[_bufferCount];
+		++_bufferCount;
+		memset(&ev, 0, sizeof(ev));
+		ev.type = type;
+		ev.code = code;
+		ev.value = value;
+	}
+
+	void flushEvents()
+	{
+		uinput_flush(_fd, _eventBuffer, _bufferCount);
+		_bufferCount = 0;
+	}
 
 	void initialize()
 	{
