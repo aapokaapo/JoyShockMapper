@@ -151,6 +151,7 @@ if (LINUX)
         src/linux/StatusNotifierItem.cpp    include/linux/StatusNotifierItem.h
         src/linux/Whitelister.cpp
         src/linux/Gamepad.cpp
+        src/linux/GamepadLibmanette.cpp
     )
 endif ()
 
