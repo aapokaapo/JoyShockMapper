@@ -234,15 +234,23 @@ void StatusNotifierItem::AddMenuItem(const std::string &l, const std::string &sl
 		auto &subMenu = subMenuIt->second.first;
 		auto &subMenuItems = subMenuIt->second.second;
 
-		subMenuItems.emplace_back(GTK_MENU_ITEM(gtk_menu_item_new_with_label(subLabelCStr)));
-		auto &subMenuItem = subMenuItems.back();
+		subMenuItems.emplace_back(GTK_MENU_ITEM(gtk_check_menu_item_new_with_label(subLabelCStr)));
+		GtkMenuItem *subMenuItemPtr = subMenuItems.back();
+		auto *subMenuItemsPtr = &subMenuItems;
 
-		item->callbacks_.emplace_back(onClick);
+		item->callbacks_.emplace_back([onClick, subMenuItemsPtr, subMenuItemPtr]() {
+			for (auto *si : *subMenuItemsPtr)
+			{
+				gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(si), FALSE);
+			}
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(subMenuItemPtr), TRUE);
+			onClick();
+		});
 		auto &cb = item->callbacks_.back();
-		g_signal_connect(subMenuItem, "activate", G_CALLBACK(&StatusNotifierItem::OnActivate), const_cast<ClickCallbackType *>(&cb));
+		g_signal_connect(subMenuItemPtr, "activate", G_CALLBACK(&StatusNotifierItem::OnActivate), const_cast<ClickCallbackType *>(&cb));
 
-		gtk_container_add(GTK_CONTAINER(subMenu), GTK_WIDGET(subMenuItem));
-		gtk_widget_show_all(GTK_WIDGET(subMenuItem));
+		gtk_container_add(GTK_CONTAINER(subMenu), GTK_WIDGET(subMenuItemPtr));
+		gtk_widget_show_all(GTK_WIDGET(subMenuItemPtr));
 
 		delete context;
 		return FALSE;
