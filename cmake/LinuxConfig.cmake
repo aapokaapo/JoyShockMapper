@@ -112,8 +112,4 @@ if (UNIX AND NOT APPLE)
         DESTINATION lib/systemd/user
     )
 
-    install (
-        FILES ${PROJECT_SOURCE_DIR}/dist/linux/conf.d/joyshockmapper.conf
-        DESTINATION ../etc/JoyShockMapper/conf.d
-    )
 endif ()
