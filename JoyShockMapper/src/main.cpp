@@ -1258,6 +1258,14 @@ bool do_RESET_MAPPINGS(CmdRegistry *registry)
 		map.reset();
 	};
 	ranges::for_each(mappings, callReset);
+	// Explicitly reset VIRTUAL_CONTROLLER to NONE before the blanket settings reset.
+	// This ensures the updateVirtualController filter callback is invoked, which properly
+	// destroys virtual controller objects (and on Linux, their uinput devices).
+	auto virtual_controller = SettingsManager::getV<ControllerScheme>(SettingID::VIRTUAL_CONTROLLER);
+	if (virtual_controller && virtual_controller->value() != ControllerScheme::NONE)
+	{
+		virtual_controller->set(ControllerScheme::NONE);
+	}
 	// It is possible some settings were intentionally omitted (JSM_DIRECTORY?, Whitelister?)
 	// TODO: make sure omitted settings don't get reset
 	SettingsManager::resetAllSettings();
