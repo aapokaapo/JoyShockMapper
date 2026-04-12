@@ -1,11 +1,13 @@
 [Unit]
-Description=JoyShockMapper - Controller Remapper (user session)
+Description=JoyShockMapper - Controller Remapper
 Documentation=https://github.com/aapokaapo/JoyShockMapper
 PartOf=graphical-session.target
-After=graphical-session-pre.target
+After=graphical-session.target gnome-session.target
 
 [Service]
 Type=notify
+# Wait up to 30 seconds for the AppIndicator extension's D-Bus interface to appear
+ExecStartPre=/bin/bash -c 'for i in {1..30}; do busctl --user list | grep -q "org.kde.StatusNotifierWatcher" && exit 0; sleep 1; done; exit 0'
 ExecStart=/usr/local/bin/JoyShockMapper --headless
 ExecReload=/bin/kill -HUP $MAINPID
 
