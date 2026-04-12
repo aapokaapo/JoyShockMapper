@@ -1,10 +1,10 @@
 [Unit]
 Description=JoyShockMapper Config Reload Socket
 Documentation=https://github.com/aapokaapo/JoyShockMapper
-PartOf=joysockmapper.service
+PartOf=joyshockmapper.service
 
 [Socket]
-ListenStream=%t/joysockmapper.sock
+ListenStream=%t/joyshockmapper.sock
 Accept=no
 
 [Install]

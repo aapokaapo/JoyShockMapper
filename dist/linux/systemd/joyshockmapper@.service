@@ -22,7 +22,7 @@ StartLimitBurst=5
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=joysockmapper
+SyslogIdentifier=joyshockmapper
 
 # Timeout & Watchdog
 TimeoutStartSec=30

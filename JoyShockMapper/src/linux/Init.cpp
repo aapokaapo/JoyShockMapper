@@ -126,8 +126,8 @@ static const int initialize = [] {
 	if (XDG_CONFIG_HOME == nullptr)
 	{
 		const auto home = getenv("HOME");
-		// HOME may be unset when running as a systemd system service; fall back to /var/lib/joysockmapper
-		configDirectory = (home != nullptr ? std::string{ home } : std::string{ "/var/lib/joysockmapper" }) + "/.config";
+		// HOME may be unset when running as a systemd system service; fall back to /var/lib/joyshockmapper
+		configDirectory = (home != nullptr ? std::string{ home } : std::string{ "/var/lib/joyshockmapper" }) + "/.config";
 		::mkdir(configDirectory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	}
 	else
