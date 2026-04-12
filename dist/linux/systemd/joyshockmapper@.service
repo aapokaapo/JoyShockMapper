@@ -3,6 +3,8 @@ Description=JoyShockMapper - Controller Remapper
 Documentation=https://github.com/aapokaapo/JoyShockMapper
 PartOf=graphical-session.target
 After=graphical-session.target gnome-session.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=notify
@@ -18,8 +20,6 @@ PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR
 # Restart on crash with exponential-style backoff to prevent restart loops
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=120
-StartLimitBurst=5
 
 # Logging
 StandardOutput=journal
