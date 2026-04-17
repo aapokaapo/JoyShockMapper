@@ -84,6 +84,10 @@ public:
 	float gyroXVelocity = 0.f;
 	float gyroYVelocity = 0.f;
 
+	// Cached auto-calibration state – avoids calling SetAutoCalibration every tick when unchanged.
+	// nullopt = not yet applied, which forces the call on the first tick.
+	optional<bool> _lastAutoCalibrate;
+
 private:
 	// this large functions is defined further down
 	float handleFlickStick(float stickX, float stickY, Stick &stick, float stickLength, StickMode mode);

@@ -368,10 +368,9 @@ void joyShockPollCallback(int jcHandle, JOY_SHOCK_STATE state, JOY_SHOCK_STATE l
 
 	{
 		bool autoCalibrate = SettingsManager::getV<Switch>(SettingID::AUTO_CALIBRATE_GYRO)->value() == Switch::ON;
-		static bool lastAutoCalibrate = !autoCalibrate; // force first application
-		if (autoCalibrate != lastAutoCalibrate)
+		if (!jc->_lastAutoCalibrate.has_value() || autoCalibrate != *jc->_lastAutoCalibrate)
 		{
-			lastAutoCalibrate = autoCalibrate;
+			jc->_lastAutoCalibrate = autoCalibrate;
 			if (autoCalibrate)
 				motion.SetAutoCalibration(true, 1.2f, 0.015f);
 			else

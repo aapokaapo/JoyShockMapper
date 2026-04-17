@@ -284,7 +284,7 @@ public:
 			// Collect device IDs to process so callbacks run outside the lock.
 			vector<int> deviceIds;
 			deviceIds.reserve(_controllerMap.size());
-			for (const auto& [id, _] : _controllerMap)
+			for (const auto& [id, device] : _controllerMap)
 				deviceIds.push_back(id);
 			controller_lock.unlock();
 
