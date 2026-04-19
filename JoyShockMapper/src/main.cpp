@@ -2892,6 +2892,14 @@ int main(int argc, char *argv[])
 			setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr.c_str(), 0);
 		}
 	}
+
+	// Initialize XDG Portal notifications early, before GTK starts.
+	// This ensures the ActionInvoked signal handler is registered on the session
+	// bus so that notifications work when launched from the desktop or as a
+	// systemd user service (where the GTK thread may start after the first
+	// controller-connected notification is sent).  setupActionHandler uses
+	// std::call_once internally, so the later call in the GTK thread is harmless.
+	LinuxNotifications::setupActionHandler();
 #endif
 
 	jsl.reset(JslWrapper::getNew());

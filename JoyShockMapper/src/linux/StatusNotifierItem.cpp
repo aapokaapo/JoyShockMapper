@@ -66,6 +66,8 @@ StatusNotifierItem::StatusNotifierItem(TrayIconData, std::function<void()> &&bef
 	  // Subscribe to the XDG portal ActionInvoked signal from within the GTK
 	  // thread so that the GLib main loop dispatches it correctly.  This must
 	  // happen before gtk_main() starts processing events.
+	  // NOTE: Already called earlier in main.cpp, but harmless to call again
+	  // since setupActionHandler uses std::call_once internally.
 	  LinuxNotifications::setupActionHandler();
 
 	  // Now run the GTK main loop

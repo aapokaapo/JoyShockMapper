@@ -24,8 +24,17 @@ std::atomic<unsigned int> g_notif_counter{ 0 };
 // locally, which prevents the startup-notification spinner that would
 // otherwise appear while GNOME waits for an acknowledgement.
 //
-// Call this from the GTK thread (before gtk_main()) so that signal delivery
-// is dispatched by the running GLib main loop.
+// This is called early in main() (before connectDevices()) so that the
+// signal subscription is in place before any notifications are sent.  It is
+// also called from the GTK thread (before gtk_main()) when a tray icon is
+// present, so that a running GLib main loop can dispatch the signal.
+// std::call_once ensures the subscription is created only once regardless
+// of how many times this function is called.
+//
+// In headless mode (--headless / systemd service) there is no GTK thread,
+// so the early call from main() is the only invocation.  sendNotification()
+// uses fully synchronous GLib/GIO calls and does not require a running GLib
+// main loop, so notifications work correctly in that environment too.
 void setupActionHandler()
 {
 	static std::once_flag flag;
