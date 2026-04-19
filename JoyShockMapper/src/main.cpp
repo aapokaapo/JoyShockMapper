@@ -1184,9 +1184,7 @@ void connectDevices(bool mergeJoycons = true)
 				// The second JC points to the same common _buttons as the other one.
 				COUT << "Found a joycon pair!\n";
 #ifdef __linux__
-				LinuxNotifications::sendNotification("JoyShockMapper", "Found a joycon pair!",
-				  LinuxNotifications::Urgency::Normal, 7000,
-				  { { "reconnect", "Reconnect", "RECONNECT_CONTROLLERS" } });
+				LinuxNotifications::sendNotification("JoyShockMapper", "Found a joycon pair!");
 #else
 				if (tray)
 					tray->SendNotification("Found a joycon pair!");
@@ -1204,9 +1202,7 @@ void connectDevices(bool mergeJoycons = true)
 	{
 		COUT << "1 device connected\n";
 #ifdef __linux__
-		LinuxNotifications::sendNotification("JoyShockMapper", "1 device connected",
-		  LinuxNotifications::Urgency::Normal, 7000,
-		  { { "reconnect", "Reconnect", "RECONNECT_CONTROLLERS" } });
+		LinuxNotifications::sendNotification("JoyShockMapper", "1 device connected");
 #else
 		if (tray)
 			tray->SendNotification("1 device connected");
@@ -1217,8 +1213,7 @@ void connectDevices(bool mergeJoycons = true)
 		CERR << numConnected << " devices connected\n";
 #ifdef __linux__
 		LinuxNotifications::sendNotification("JoyShockMapper", "No devices connected",
-		  LinuxNotifications::Urgency::Low, 7000,
-		  { { "reconnect", "Retry", "RECONNECT_CONTROLLERS" } });
+		  LinuxNotifications::Urgency::Low);
 #else
 		if (tray)
 			tray->SendNotification("No devices connected");
@@ -1228,9 +1223,7 @@ void connectDevices(bool mergeJoycons = true)
 	{
 		COUT << numConnected << " devices connected\n";
 #ifdef __linux__
-		LinuxNotifications::sendNotification("JoyShockMapper", to_string(numConnected) + " devices connected",
-		  LinuxNotifications::Urgency::Normal, 7000,
-		  { { "reconnect", "Reconnect", "RECONNECT_CONTROLLERS" } });
+		LinuxNotifications::sendNotification("JoyShockMapper", to_string(numConnected) + " devices connected");
 #else
 		if (tray)
 			tray->SendNotification(to_string(numConnected) + " devices connected");
@@ -1851,9 +1844,7 @@ ControllerScheme updateVirtualController(ControllerScheme prevScheme, Controller
 		{
 #ifdef __linux__
 			LinuxNotifications::sendNotification("JoyShockMapper",
-			  string("Virtual ") + schemeName + " controller initialized",
-			  LinuxNotifications::Urgency::Normal, 7000,
-			  { { "ok", "OK", "" } });
+			  string("Virtual ") + schemeName + " controller initialized");
 #else
 			if (tray)
 				tray->SendNotification(string("Virtual ") + schemeName + " controller initialized");
@@ -1862,11 +1853,9 @@ ControllerScheme updateVirtualController(ControllerScheme prevScheme, Controller
 		else
 		{
 #ifdef __linux__
-			const char *schemeCmd = (nextScheme == ControllerScheme::XBOX) ? "XBOX" : "DS4";
 			LinuxNotifications::sendNotification("JoyShockMapper",
 			  string("Virtual ") + schemeName + " controller initialization failed",
-			  LinuxNotifications::Urgency::Critical, 7000,
-			  { { "retry", "Retry", string("VIRTUAL_CONTROLLER = ") + schemeCmd } });
+			  LinuxNotifications::Urgency::Critical);
 #else
 			if (tray)
 				tray->SendNotification(string("Virtual ") + schemeName + " controller initialization failed");
@@ -2913,11 +2902,6 @@ int main(int argc, char *argv[])
 	// to the main thread
 	initFifoCommandListener();
 	initSocketCommandListener();
-	#endif
-	#ifdef __linux__
-	// Start the D-Bus signal listener that routes notification action-button
-	// clicks through the command queue.
-	LinuxNotifications::initNotificationActionListener();
 	#endif
 	COUT_BOLD << "Welcome to JoyShockMapper version " << version << "!\n";
 	if (g_headless)
