@@ -1179,6 +1179,8 @@ void connectDevices(bool mergeJoycons = true)
 			{
 				// The second JC points to the same common _buttons as the other one.
 				COUT << "Found a joycon pair!\n";
+				if (tray)
+					tray->SendNotification("Found a joycon pair!");
 				handle_to_joyshock[handle] = make_shared<JoyShock>(handle, type, otherJoyCon->second->_context);
 			}
 			else
@@ -1191,14 +1193,20 @@ void connectDevices(bool mergeJoycons = true)
 	if (numConnected == 1)
 	{
 		COUT << "1 device connected\n";
+		if (tray)
+			tray->SendNotification("1 device connected");
 	}
 	else if (numConnected == 0)
 	{
 		CERR << numConnected << " devices connected\n";
+		if (tray)
+			tray->SendNotification("No devices connected");
 	}
 	else
 	{
 		COUT << numConnected << " devices connected\n";
+		if (tray)
+			tray->SendNotification(to_string(numConnected) + " devices connected");
 	}
 	// if (!IsVisible())
 	//{
@@ -1806,6 +1814,20 @@ ControllerScheme updateVirtualController(ControllerScheme prevScheme, Controller
 					break;
 				}
 			}
+		}
+	}
+	if (nextScheme != ControllerScheme::NONE)
+	{
+		const char *schemeName = (nextScheme == ControllerScheme::XBOX) ? "Xbox" : "DS4";
+		if (success)
+		{
+			if (tray)
+				tray->SendNotification(string("Virtual ") + schemeName + " controller initialized");
+		}
+		else
+		{
+			if (tray)
+				tray->SendNotification(string("Virtual ") + schemeName + " controller initialization failed");
 		}
 	}
 	return success ? nextScheme : prevScheme;

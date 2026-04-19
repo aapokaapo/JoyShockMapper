@@ -1,4 +1,5 @@
 #include "linux/StatusNotifierItem.h"
+#include "linux/LinuxNotificationManager.h"
 
 #include <cstring>
 #include <libappindicator/app-indicator.h>
@@ -113,9 +114,9 @@ bool StatusNotifierItem::Hide()
 	return true;
 }
 
-bool StatusNotifierItem::SendNotification(const std::string &)
+bool StatusNotifierItem::SendNotification(const std::string &message)
 {
-	return true;
+	return LinuxNotifications::sendNotification("JoyShockMapper", message);
 }
 
 void StatusNotifierItem::AddMenuItem(const std::string &label, ClickCallbackType &&onClick)

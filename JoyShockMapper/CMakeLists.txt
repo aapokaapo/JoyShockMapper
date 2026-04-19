@@ -149,6 +149,7 @@ if (LINUX)
         src/linux/InputHelpers.cpp
         src/linux/PlatformDefinitions.cpp
         src/linux/StatusNotifierItem.cpp    include/linux/StatusNotifierItem.h
+        src/linux/LinuxNotificationManager.cpp  include/linux/LinuxNotificationManager.h
         src/linux/Whitelister.cpp
         src/linux/Gamepad.cpp
         src/linux/GamepadLibmanette.cpp
