@@ -1156,7 +1156,6 @@ void connectDevices(bool mergeJoycons = true)
 	this_thread::sleep_for(100ms);
 	int numConnected = jsl->ConnectDevices();
 	vector<int> deviceHandles(numConnected, 0);
-	bool joyconPairFound = false;
 	if (numConnected > 0)
 	{
 		numConnected = jsl->GetConnectedDeviceHandles(&deviceHandles[0], numConnected);
@@ -1180,7 +1179,8 @@ void connectDevices(bool mergeJoycons = true)
 			{
 				// The second JC points to the same common _buttons as the other one.
 				COUT << "Found a joycon pair!\n";
-				joyconPairFound = true;
+				if (tray)
+					tray->SendNotification("Found a joycon pair!");
 				handle_to_joyshock[handle] = make_shared<JoyShock>(handle, type, otherJoyCon->second->_context);
 			}
 			else
@@ -1190,33 +1190,24 @@ void connectDevices(bool mergeJoycons = true)
 		}
 	}
 
-	// Track previous connected count so notifications only fire on actual changes.
-	static int prevNumConnected = -1;
-	const bool countChanged = (numConnected != prevNumConnected);
-	prevNumConnected = numConnected;
-
 	if (numConnected == 1)
 	{
 		COUT << "1 device connected\n";
-		if (tray && countChanged)
+		if (tray)
 			tray->SendNotification("1 device connected");
 	}
 	else if (numConnected == 0)
 	{
 		CERR << numConnected << " devices connected\n";
-		if (tray && countChanged)
+		if (tray)
 			tray->SendNotification("No devices connected");
 	}
 	else
 	{
 		COUT << numConnected << " devices connected\n";
-		if (tray && countChanged)
+		if (tray)
 			tray->SendNotification(to_string(numConnected) + " devices connected");
 	}
-
-	if (tray && joyconPairFound && countChanged)
-		tray->SendNotification("Found a joycon pair!");
-
 	// if (!IsVisible())
 	//{
 	//	tray->SendNotification(wstring(msg.begin(), msg.end()));
