@@ -34,9 +34,14 @@ bool sendNotification(
 
 // Subscribe to org.freedesktop.portal.Notification.ActionInvoked on the
 // session bus so that GNOME 49+ does not show a startup-notification spinner
-// when the user clicks a desktop notification.  Must be called from a thread
-// that already has a running GLib main loop (i.e. from within the GTK thread
-// before gtk_main() is called).
+// when the user clicks a desktop notification.
+//
+// Called early in main() before connectDevices() so that the subscription is
+// active before any notification is sent.  Also called from the GTK thread
+// (before gtk_main()) when a tray icon is active so that a running GLib main
+// loop can dispatch the signal.  In headless (--headless / systemd service)
+// mode the GTK thread never starts, so the early call from main() is the
+// only invocation.  std::call_once ensures the subscription is created once.
 void setupActionHandler();
 #else
 // XDG Desktop Portal unavailable at build time – notifications silently disabled.
