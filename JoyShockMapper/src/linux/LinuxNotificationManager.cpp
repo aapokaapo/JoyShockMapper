@@ -72,26 +72,99 @@ void setupActionHandler()
 }
 
 // ---------------------------------------------------------------------------
-// sendNotification
+// tryClassicNotification
 // ---------------------------------------------------------------------------
-bool sendNotification(
+// Sends a notification via the classic org.freedesktop.Notifications D-Bus
+// interface (the libnotify/notify-send protocol).  This interface has no
+// app-id requirement and works from any process, including systemd user
+// services that are not launched via D-Bus activation.  Returns true on
+// success, false if the notification daemon is not available or an error
+// occurs.
+static bool tryClassicNotification(
+  GDBusConnection *conn,
   const std::string &summary,
   const std::string &body,
   Urgency urgency,
-  int /*expireTimeoutMs*/) // portal controls timeout; parameter kept for ABI
+  int expireTimeoutMs)
 {
+	// Map Urgency to the hint value expected by the classic spec (0=low,1=normal,2=critical).
+	guchar urgencyByte;
+	switch (urgency)
+	{
+	case Urgency::Low:      urgencyByte = 0; break;
+	case Urgency::Critical: urgencyByte = 2; break;
+	default:                urgencyByte = 1; break;
+	}
+
+	// Build the hints dict: {"urgency": byte}.
+	GVariantBuilder hints_builder;
+	g_variant_builder_init(&hints_builder, G_VARIANT_TYPE("a{sv}"));
+	g_variant_builder_add(&hints_builder, "{sv}", "urgency",
+	  g_variant_new_byte(urgencyByte));
+
+	// Build the actions array (empty – we don't register any actions).
+	GVariantBuilder actions_builder;
+	g_variant_builder_init(&actions_builder, G_VARIANT_TYPE("as"));
+
+	// org.freedesktop.Notifications.Notify signature:
+	// (STRING app_name, UINT32 replaces_id, STRING app_icon,
+	//  STRING summary, STRING body,
+	//  ARRAY<STRING> actions, DICT<STRING,VARIANT> hints,
+	//  INT32 expire_timeout)
+	// → (UINT32 notification_id)
 	GError *error = nullptr;
-	GDBusConnection *conn = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
-	if (!conn)
+	GVariant *result = g_dbus_connection_call_sync(
+	  conn,
+	  "org.freedesktop.Notifications",
+	  "/org/freedesktop/Notifications",
+	  "org.freedesktop.Notifications",
+	  "Notify",
+	  g_variant_new("(susssasa{sv}i)",
+	    "JoyShockMapper",         // app_name
+	    static_cast<guint32>(0),  // replaces_id (0 = new notification)
+	    "JoyShockMapper",         // app_icon
+	    summary.c_str(),          // summary
+	    body.c_str(),             // body
+	    &actions_builder,
+	    &hints_builder,
+	    expireTimeoutMs),
+	  G_VARIANT_TYPE("(u)"),
+	  G_DBUS_CALL_FLAGS_NONE,
+	  -1,
+	  nullptr,
+	  &error);
+
+	if (!result)
 	{
 		if (error)
 		{
-			std::cerr << "[Notifications] Cannot connect to session bus: " << error->message << '\n';
+			std::cerr << "[Notifications] org.freedesktop.Notifications.Notify failed: "
+			          << error->message << '\n';
 			g_error_free(error);
 		}
 		return false;
 	}
 
+	g_variant_unref(result);
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// tryPortalNotification
+// ---------------------------------------------------------------------------
+// Sends a notification via the XDG Desktop Portal
+// (org.freedesktop.portal.Notification).  This is the preferred path for
+// sandboxed apps (Flatpak/Snap), but on GNOME 45+ it silently discards
+// notifications from processes that have no registered app-id (e.g. a
+// systemd user service that was not launched via D-Bus activation).
+// Returns true if the D-Bus call itself did not return an error; note that
+// a true return does not guarantee the notification was actually displayed.
+static bool tryPortalNotification(
+  GDBusConnection *conn,
+  const std::string &summary,
+  const std::string &body,
+  Urgency urgency)
+{
 	// Map our Urgency enum to the portal priority string.
 	const char *priority;
 	switch (urgency)
@@ -120,6 +193,7 @@ bool sendNotification(
 
 	// org.freedesktop.portal.Notification.AddNotification signature:
 	// (STRING id, DICT<STRING,VARIANT> notification) → ()
+	GError *error = nullptr;
 	GVariant *result = g_dbus_connection_call_sync(
 	  conn,
 	  "org.freedesktop.portal.Desktop",
@@ -132,8 +206,6 @@ bool sendNotification(
 	  -1,
 	  nullptr,
 	  &error);
-
-	g_object_unref(conn);
 
 	if (!result)
 	{
@@ -148,6 +220,45 @@ bool sendNotification(
 
 	g_variant_unref(result);
 	return true;
+}
+
+// ---------------------------------------------------------------------------
+// sendNotification
+// ---------------------------------------------------------------------------
+bool sendNotification(
+  const std::string &summary,
+  const std::string &body,
+  Urgency urgency,
+  int expireTimeoutMs)
+{
+	GError *error = nullptr;
+	GDBusConnection *conn = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
+	if (!conn)
+	{
+		if (error)
+		{
+			std::cerr << "[Notifications] Cannot connect to session bus: " << error->message << '\n';
+			g_error_free(error);
+		}
+		return false;
+	}
+
+	// Try the classic org.freedesktop.Notifications interface first.  It
+	// works from any process (including systemd user services) without
+	// requiring an app-id and is universally supported on all desktops.
+	// Fall back to the XDG Desktop Portal only if the classic daemon is
+	// absent – the portal silently drops notifications on GNOME 45+ when
+	// it cannot associate the caller with a registered .desktop app-id.
+	bool sent = tryClassicNotification(conn, summary, body, urgency, expireTimeoutMs);
+	if (!sent)
+		sent = tryPortalNotification(conn, summary, body, urgency);
+
+	g_object_unref(conn);
+
+	if (!sent)
+		std::cerr << "[Notifications] All notification backends failed\n";
+
+	return sent;
 }
 
 } // namespace LinuxNotifications
