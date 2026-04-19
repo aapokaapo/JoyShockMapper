@@ -1,5 +1,7 @@
 #include "linux/LinuxNotificationManager.h"
 
+#ifdef HAVE_GIO_NOTIFICATIONS
+
 #include <gio/gio.h>
 #include <iostream>
 
@@ -79,3 +81,5 @@ bool sendNotification(
 }
 
 } // namespace LinuxNotifications
+
+#endif // HAVE_GIO_NOTIFICATIONS
