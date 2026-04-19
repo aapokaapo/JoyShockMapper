@@ -23,6 +23,8 @@
 #endif
 
 #ifdef __linux__
+#include <cstdlib>
+#include <string>
 #include "linux/LinuxNotificationManager.h"
 #endif
 
@@ -2879,6 +2881,18 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
+
+#ifdef __linux__
+	// Ensure D-Bus session is available for XDG Desktop Portal notifications
+	// This is needed when running as systemd user service
+	if (!std::getenv("DBUS_SESSION_BUS_ADDRESS")) {
+		const char *runtime_dir = std::getenv("XDG_RUNTIME_DIR");
+		if (runtime_dir && runtime_dir[0] != '\0') {
+			std::string dbus_addr = std::string("unix:path=") + runtime_dir + "/bus";
+			setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr.c_str(), 0);
+		}
+	}
+#endif
 
 	jsl.reset(JslWrapper::getNew());
 	whitelister.reset(Whitelister::getNew(false));
