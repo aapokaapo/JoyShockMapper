@@ -63,6 +63,11 @@ StatusNotifierItem::StatusNotifierItem(TrayIconData, std::function<void()> &&bef
 	  // Show the menu and all widgets
 	  gtk_widget_show_all(GTK_WIDGET(menu_.get()));
 
+	  // Subscribe to the XDG portal ActionInvoked signal from within the GTK
+	  // thread so that the GLib main loop dispatches it correctly.  This must
+	  // happen before gtk_main() starts processing events.
+	  LinuxNotifications::setupActionHandler();
+
 	  // Now run the GTK main loop
 	  gtk_main();
   } }
