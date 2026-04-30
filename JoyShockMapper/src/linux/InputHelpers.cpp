@@ -565,7 +565,6 @@ static std::mutex accumulatedMutex;
 void moveMouse(float x, float y)
 {
 	std::lock_guard<std::mutex> lock(accumulatedMutex);
-
 	accumulatedX += x;
 	accumulatedY += y;
 
