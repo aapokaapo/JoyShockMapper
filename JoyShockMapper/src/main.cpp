@@ -19,6 +19,7 @@
 #else
 #define UCHAR unsigned char
 #include <algorithm>
+#include <atomic>
 #include <unistd.h>
 #endif
 
@@ -44,7 +45,7 @@ unique_ptr<PollingThread> autoLoadThread;
 unique_ptr<JSM::AutoConnect> autoConnectThread;
 unique_ptr<PollingThread> minimizeThread;
 bool devicesCalibrating = false;
-bool g_headless = false;
+std::atomic<bool> g_headless = false;
 unordered_map<int, shared_ptr<JoyShock>> handle_to_joyshock;
 
 int input_pipe_fd[2];

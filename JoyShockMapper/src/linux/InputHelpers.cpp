@@ -558,11 +558,13 @@ int pressKey(KeyCode vkKey, bool pressed)
 	return 0;
 }
 
-float accumulatedX = 0;
-float accumulatedY = 0;
+static float accumulatedX = 0;
+static float accumulatedY = 0;
+static std::mutex accumulatedMutex;
 
 void moveMouse(float x, float y)
 {
+	std::lock_guard<std::mutex> lock(accumulatedMutex);
 	accumulatedX += x;
 	accumulatedY += y;
 
@@ -573,7 +575,6 @@ void moveMouse(float x, float y)
 	accumulatedY -= applicableY;
 
 	mouse.mouse_move_relative(applicableX, applicableY);
-	// printf("%0.4f %0.4f\n", accumulatedX, accumulatedY);
 }
 
 void setMouseNorm(float x, float y)
@@ -598,26 +599,20 @@ BOOL ConsoleCtrlHandler(DWORD)
 void initConsole(std::function<void()>)
 {
 	static std::thread consoleForwardThread([](){
-		std::cout << "[DEBUG] consoleForwardThread started" << std::endl;
 		std::string line;
 		while (true)
 		{
 			if (!std::getline(std::cin, line))
 			{
-				std::cout << "[DEBUG] consoleForwardThread: EOF or error on cin" << std::endl;
 				break;
 			}
 
-			std::cout << "[DEBUG] consoleForwardThread: read line from cin: " << line << std::endl;
-
-			// Forward input to input_pipe_fd[1], mimicking WriteToConsole
 			{
 				std::lock_guard<std::mutex> lock(commandQueueMutex);
 				commandQueue.push(Command{line, CommandSource::CONSOLE});
 				commandQueueCV.notify_one();
 			}
 		}
-		std::cout << "[DEBUG] consoleForwardThread exiting" << std::endl;
 	});
 }
 
@@ -713,14 +708,17 @@ std::vector<std::string> ListDirectory(std::string directory)
 
 	fileListing.reserve(entryCount);
 
-	while (entryCount--)
+	int remaining = entryCount;
+	while (remaining--)
 	{
-		const auto entry = entries[entryCount];
+		const auto entry = entries[remaining];
 		if (entry->d_type == DT_REG)
 		{
 			fileListing.emplace_back(entry->d_name);
 		}
+		free(entry);
 	}
+	free(entries);
 
 	return fileListing;
 }
@@ -734,7 +732,7 @@ std::string GetCWD()
 }
 
 bool SetCWD(string_view newCWD) {
-    return chdir(newCWD.data()) != 0;
+    return chdir(newCWD.data()) == 0;
 }
 
 DWORD ShowOnlineHelp()
@@ -743,7 +741,7 @@ DWORD ShowOnlineHelp()
 	return 0;
 }
 
-extern bool g_headless;
+extern std::atomic<bool> g_headless;
 
 void HideConsole()
 {
